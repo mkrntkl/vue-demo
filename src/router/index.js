@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import TableView from "../views/TableView.vue";
+import EditTableView from "../views/EditTableView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -13,9 +14,13 @@ const router = createRouter({
       path: "/new",
       name: "new",
       // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import("../views/DataForm.vue"),
+      component: () => import("../views/NewTableView.vue"),
+    },
+    {
+      path: "/:id",
+      name: "edit",
+      component: EditTableView,
+      props: true,
     },
   ],
 });

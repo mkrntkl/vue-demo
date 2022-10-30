@@ -1,14 +1,21 @@
 <script setup>
 import { ref } from "vue";
 import DataTable from "../components/DataTable.vue";
+import { mapTableToData } from "../utils/tableMapping";
+import { postTable } from "../api/table";
+import router from "../router";
 
 const fileInput = ref(null);
 const data = ref([]);
 const headers = ref([]);
-const selectedHeaders = ref([]);
+const headersCheckedState = ref([]);
 const tableName = ref("");
 
-function onFileChange(e) {
+function handleNameChange(e) {
+  tableName.value = e.target.value;
+}
+
+function handleFileChange(e) {
   let files = e.target.files;
   if (
     files.length > 0 &&
@@ -36,8 +43,7 @@ function readFile(file) {
       });
       assignData(output);
     } else {
-      fileInput.value.value = "";
-      return;
+      // TODO: implement clearing functionality
     }
 
     if (tableName.value === "") {
@@ -50,14 +56,14 @@ function readFile(file) {
 function assignData(_data) {
   data.value = _data;
   headers.value = Object.keys(data.value[0]);
-  selectedHeaders.value = headers.value.map(() => true);
+  headersCheckedState.value = headers.value.map(() => true);
 }
 
 function onSelect(e, index) {
   if (e.target.checked) {
-    selectedHeaders.value[index] = true;
+    headersCheckedState.value[index] = true;
   } else {
-    selectedHeaders.value[index] = false;
+    headersCheckedState.value[index] = false;
   }
 }
 
@@ -68,7 +74,7 @@ function downloadData() {
     newData.push(
       Object.fromEntries(
         Object.entries(data.value[i]).filter(
-          (_, index) => selectedHeaders.value[index] === true,
+          (_, index) => headersCheckedState.value[index] === true,
         ),
       ),
     );
@@ -94,6 +100,27 @@ function downloadData() {
     }, 0);
   }
 }
+
+function saveTable() {
+  const saveData = mapTableToData(
+    data.value,
+    tableName.value,
+    getSelectedHeaders(),
+  );
+  postTable(saveData)
+    .then((res) => {
+      if (res.data) {
+        router.push("/");
+      }
+    })
+    .catch((e) => {
+      console.log(e);
+    });
+}
+
+function getSelectedHeaders() {
+  return headers.value.filter((_, index) => !!headersCheckedState.value[index]);
+}
 </script>
 
 <template>
@@ -107,7 +134,7 @@ function downloadData() {
             class="form-control"
             title="fileInput"
             ref="fileInput"
-            @change="onFileChange"
+            @change="handleFileChange"
             accept="text/csv, application/json"
           />
         </div>
@@ -116,7 +143,7 @@ function downloadData() {
           <input
             class="form-control"
             title="tableName"
-            @change="onFileChange"
+            @change="handleNameChange"
             accept="text/csv, application/json"
             maxlength="30"
             :value="tableName"
@@ -142,7 +169,7 @@ function downloadData() {
                   type="checkbox"
                   :name="header"
                   :id="'checkbox-' + header"
-                  :checked="!!selectedHeaders[index]"
+                  :checked="!!headersCheckedState[index]"
                   @change="(e) => onSelect(e, index)"
                 />
                 <label class="form-check-label" :for="'checkbox-' + header">
@@ -152,22 +179,30 @@ function downloadData() {
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          class="btn btn-dark button"
-          id="downloadButton"
-          @click="downloadData"
-          v-if="data.length > 0"
-        >
-          Save as JSON
-        </button>
+        <div class="d-flex">
+          <button
+            type="button"
+            class="btn btn-dark button-wide me-3"
+            id="downloadButton"
+            @click="downloadData"
+            v-if="data.length > 0"
+          >
+            Download as JSON
+          </button>
+          <button
+            type="button"
+            class="btn btn-dark button"
+            id="downloadButton"
+            @click="saveTable"
+            v-if="data.length > 0"
+          >
+            Save table
+          </button>
+        </div>
       </div>
     </div>
-    <DataTable
-      :data="data"
-      :headers="headers.filter((_, index) => !!selectedHeaders[index])"
-    />
   </form>
+  <DataTable :data="data" :headers="getSelectedHeaders()" />
 </template>
 
 <style>
@@ -182,5 +217,9 @@ function downloadData() {
 .button {
   height: 2.5rem;
   min-width: 8rem;
+}
+.button-wide {
+  height: 2.5rem;
+  min-width: 10rem;
 }
 </style>
