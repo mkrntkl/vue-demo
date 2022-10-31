@@ -62,7 +62,7 @@ export function mapTableToData(table, name, headersArr) {
       val.tableId = tableId;
       val.rowId = rowId;
       val.headerId = headers[j].id;
-      val.value = row[headers[j].name].toString();
+      val.value = row[headers[j].name]?.toString();
       values.push(val);
     }
   }
